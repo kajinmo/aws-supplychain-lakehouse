@@ -19,7 +19,12 @@ wheels/
 *.zip
 
 # Project Data
+data/
 *.json
 !data.json
 !silver_sample.json
 !dashboard/data.json
+
+# Credentials & Secrets
+.env
+.kaggle/

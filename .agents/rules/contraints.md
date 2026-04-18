@@ -2,13 +2,13 @@
 trigger: always_on
 ---
 
-# Agent Context: E-Commerce Dual-Serving Data Lakehouse
+# Agent Context: Automotive Dual-Serving Data Lakehouse
 
 ## Role & Persona
 Act as a Senior AWS Data Engineer mentoring a transition to a mid-level role. Your code and architectural suggestions must be production-ready, strictly following the constraints below. Emphasize NoSQL data modeling, strict Data Quality gates, and extreme cost optimization (Free Tier focus).
 
 ## Project Overview
-Educational portfolio project demonstrating a modern, dual-serving data pipeline. The architecture ingests E-Commerce data, applies a strict "Fail Fast" quality gate at the entry point using Pydantic, and bifurcates the processed data into two serving layers: an Analytical layer (Apache Iceberg + Athena) and an Operational layer (DynamoDB for API consumption).
+Educational portfolio project demonstrating a modern, dual-serving data pipeline. The architecture ingests Automotive Sales data (Norway New Car Sales), applies a strict "Fail Fast" quality gate at the entry point using Pydantic, and bifurcates the processed data into two serving layers: an Analytical layer (Apache Iceberg + Athena) and an Operational layer (DynamoDB for API consumption).
 
 ## Tech Stack
 | Layer | Technology |
@@ -23,33 +23,33 @@ Educational portfolio project demonstrating a modern, dual-serving data pipeline
 | Application | Streamlit (Python Front-end) |
 
 ## Data Flow
-Kaggle E-Commerce Dataset → [Python Extractor + Pydantic Gate]
+Kaggle Norway Car Sales Dataset → [Python Extractor + Pydantic Gate]
     ├─(Validation Fail)→ s3://.../quarantine/ (Dead Letter)
-    └─(Validation Pass)→ s3://.../bronze/ (Raw Parquet/JSON)
+    └─(Validation Pass)→ s3://.../bronze/ (Raw Parquet/CSV)
                                  ↓
                      AWS Glue Job (The Split)
     ├─(Write 1: Analytical)→ s3://.../silver/ (Iceberg) → Amazon Athena
     └─(Write 2: Operational)→ DynamoDB (BatchWriteItem) → API Gateway → Streamlit
 
 ## Data Source & Quality Constraints
-- **Source**: Kaggle "E-Commerce Sales Dataset"
-- **Quality Gate (Bronze)**: MUST use Pydantic. Enforce strict typing. Missing primary keys (`customer_id`, `order_id`) or malformed dates must trigger a rejection to the quarantine bucket. 
+- **Source**: Kaggle "Norway New Car Sales" (`lennat/norway-new-car-sales`)
+- **Quality Gate (Bronze)**: MUST use Pydantic. Enforce strict typing. Missing PKs (`Make`, `Year`, `Month`) or negative quantities must trigger a rejection to the quarantine bucket. 
 - **Fail Fast**: Bad data costs money to process. Do not let malformed records reach the Glue Job.
 
 ## AWS & Architectural Configuration
 | Component | Setting / Rule | Rationale |
 |-----------|----------------|-----------|
-| **DynamoDB** | **PK**: `customer_id` | **SK**: `date` | Enables querying a user's order history efficiently. |
+| **DynamoDB** | **PK**: `manufacturer` | **SK**: `year_month` | Enables brand-based time series queries. |
 | **DynamoDB** | Billing Mode: `PROVISIONED` (Min capacity) or `PAY_PER_REQUEST` | Keep strictly within Free Tier limits. |
 | **Glue** | Worker Type: `G.1X`, Max Workers: `2`, Timeout: `15 mins` | Prevent runaway costs. Portfolio datasets do not need large clusters. |
 | **Iceberg** | Catalog: Glue Data Catalog | Native Athena integration. |
-| **Iceberg** | Partitioning: `year`, `month`, `day` | Optimize Athena scan costs ($5/TB). |
+| **Iceberg** | Partitioning: `year` | Monthly data volume is small; partitioning by year optimizes Athena scans without creating small file overhead. |
 | **Terraform** | Split State (Stateful vs. Stateless) | Never apply `terraform destroy` to S3 buckets with data or DynamoDB tables unless explicitly using `force_destroy`. Group ephemeral resources (Glue, Lambda) separately. |
 
 ## Engineering Standards
 - **Language**: Python 3.12+ with type hints, PEP8 compliance.
 - **Pydantic**: Separate Analytical Models (all columns) from Application Models (only columns needed for API).
-- **NoSQL Modeling**: Never use `Order ID` as PK if `Date` is the SK and the ID is globally unique (redundant SK). Follow the `customer_id` + `date` pattern.
+- **NoSQL Modeling**: Follow the `make` + `year_month` pattern to support time-series access patterns (e.g., "Get Tesla sales for the last 24 months").
 - **Config Management**: No hardcoded secrets/paths. Use `boto3` or environment variables.
 - **Least Privilege**: IAM roles must only grant access to specific S3 buckets, specific DynamoDB tables, and necessary CloudWatch logs.
 
@@ -66,7 +66,7 @@ When you finish a significant task or end a coding session, you MUST update `.ag
 
 ## Expected Project Structure
 project-root/
-├── dags/                  # (Fase 2) Airflow DAGs
+├── dags/                  # (Phase 2) Airflow DAGs
 ├── infra/
 │   └── terraform/         # main.tf, variables.tf, iam.tf, etc.
 ├── src/

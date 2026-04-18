@@ -14,20 +14,17 @@ trigger: always_on
 ## Change Log & Decisões Arquiteturais
 *(Registre aqui as mudanças com a data e o racional técnico)*
 
-- **[2026-04-18] Inicialização do Projeto & Definição de Arquitetura:**
-  - *Decisão:* Adoção de arquitetura Serverless (Glue, Athena, DynamoDB, Lambda, S3) focada no Free Tier da AWS.
-  - *Decisão:* Implementação de um "Quality Gate" com Pydantic na camada Bronze (Fail-Fast) para evitar custos de processamento no Glue com dados malformados.
-  - *Decisão:* Modelagem do DynamoDB definida com PK=`customer_id` e SK=`date` para otimizar o padrão de acesso do histórico de compras.
-
-- **[2026-04-18] Scaffold do Projeto & Contratos Pydantic:**
-  - *Ação:* Criação da estrutura de pastas base (`infra/terraform`, `src/extract`, `src/models`, `src/transform`, `src/api`, `frontend`, `dags`, `tests`).
-  - *Decisão:* Definição dos modelos Pydantic `AnalyticalOrder` (Bronze Layer fail-fast) e `ApplicationOrder` (Operational Layer API). Validação estrita para evitar chaves nulas ou vazias.
+- **[2026-04-18] Pivot: Norway Car Sales Dataset:**
+  - *Decisão:* Mudança do dataset de E-commerce para Vendas de Carros na Noruega para melhor demonstração de séries temporais por marca.
+  - *Decisão:* Redesenho da PK/SK do DynamoDB para `manufacturer` e `year_month`.
+  - *Ação:* Refatoração do `kaggle_fetcher.py` para usar a API Nativa (Python SDK) em vez de comandos shell, preparando o terreno para integração com AWS SSM/Secrets Manager.
 
 ## Bloqueios / Pontos de Atenção
 - Configurar o AWS Budget Alert na conta da AWS antes de provisionar qualquer recurso via Terraform para garantir o limite de custos (Free Tier).
 
 ## Próximos Passos (To-Do)
-1. ~~Criar a estrutura inicial de pastas do repositório (`infra/`, `src/`, `tests/`, etc.).~~ *(Concluído)*
-2. ~~Desenvolver os modelos de validação de dados usando `pydantic` com base no E-commerce Sales Dataset do Kaggle.~~ *(Concluído)*
-3. Iniciar o provisionamento do backend do Terraform (State Lock / S3 e DynamoDB).
-4. Configurar alertas de orçamentos (AWS Budgets) via Terraform para garantir monitoramento do Free Tier.
+1. ~~Criar a estrutura inicial de pastas do repositório.~~ *(Concluído)*
+2. ~~Desenvolver modelos Pydantic (Car Sales).~~ *(Concluído)*
+3. Atualizar scripts de ingestão e extração para o novo dataset.
+4. Iniciar o provisionamento do backend do Terraform (State Lock / S3 e DynamoDB).
+5. Configurar alertas de orçamentos (AWS Budgets).
