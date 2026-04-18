@@ -19,6 +19,11 @@ trigger: always_on
   - *Decisão:* Redesenho da PK/SK do DynamoDB para `manufacturer` e `year_month`.
   - *Ação:* Refatoração do `kaggle_fetcher.py` para usar a API Nativa (Python SDK) em vez de comandos shell, preparando o terreno para integração com AWS SSM/Secrets Manager.
 
+- **[2026-04-18] Scaffold da Infraestrutura (Terraform):**
+  - *Ação:* Criação dos arquivos base do Terraform (`providers.tf`, `variables.tf`, `s3.tf`, `dynamodb.tf`, e `budgets.tf`).
+  - *Segurança:* Implementação do `aws_budgets_budget` limitando custos a USD 2.00 e envio de alertas usando configuração `TF_VAR_` via `.env`.
+  - *Resiliência:* Adicionada proteção contra exclusão não-intencional (`force_destroy = false`) nos buckets S3 (Bronze, Silver e Quarentena).
+
 ## Bloqueios / Pontos de Atenção
 - Configurar o AWS Budget Alert na conta da AWS antes de provisionar qualquer recurso via Terraform para garantir o limite de custos (Free Tier).
 
