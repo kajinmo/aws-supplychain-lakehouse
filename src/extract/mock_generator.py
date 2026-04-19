@@ -73,6 +73,8 @@ def generate_mock_sales(output_dir: str = "data", inject_chaos: bool = False):
         
     print(f"[SUCCESS] Mock dataset generated at: {filename}")
     print(f"Total records generated: {len(records)}")
+    
+    return filename
 
 if __name__ == "__main__":
     import argparse

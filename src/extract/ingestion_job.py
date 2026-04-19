@@ -44,33 +44,57 @@ def extract_and_validate(csv_path: str):
             
     # Process valid records
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    base_dir = Path("data")
     
-    if valid_analytical:
-        bronze_dir = base_dir / "bronze" / f"ingestion_date={timestamp[:8]}"
-        bronze_dir.mkdir(parents=True, exist_ok=True)
+    bronze_bucket = os.environ.get("BRONZE_BUCKET")
+    quarantine_bucket = os.environ.get("QUARANTINE_BUCKET")
+    
+    if bronze_bucket:
+        import awswrangler as wr
+        print(f"[Cloud] Writing to S3 Buckets: {bronze_bucket} and {quarantine_bucket}")
         
-        df_valid = pd.DataFrame(valid_analytical)
-        bronze_path = bronze_dir / f"valid_sales_{timestamp}.parquet"
-        df_valid.to_parquet(bronze_path, index=False)
-        print(f"[Success] Saved {len(valid_analytical)} valid records to Bronze Layer: {bronze_path}")
+        if valid_analytical:
+            df_valid = pd.DataFrame(valid_analytical)
+            s3_bronze_path = f"s3://{bronze_bucket}/ingestion_date={timestamp[:8]}/valid_sales_{timestamp}.parquet"
+            wr.s3.to_parquet(df=df_valid, path=s3_bronze_path, index=False)
+            print(f"[Success] Saved {len(valid_analytical)} valid records to S3 Bronze: {s3_bronze_path}")
+            
+        if quarantine_records:
+            df_quar = pd.DataFrame(quarantine_records).astype(str)
+            s3_quar_path = f"s3://{quarantine_bucket}/ingestion_date={timestamp[:8]}/malformed_sales_{timestamp}.parquet"
+            wr.s3.to_parquet(df=df_quar, path=s3_quar_path, index=False)
+            print(f"[Dead Letter] Saved {len(quarantine_records)} invalid records to S3 Quarantine: {s3_quar_path}")
+            
     else:
-        print("[Warning] No valid records found.")
+        print("[Local] BRONZE_BUCKET env var not found. Writing locally.")
+        base_dir = Path("data")
         
-    if quarantine_records:
-        quar_dir = base_dir / "quarantine" / f"ingestion_date={timestamp[:8]}"
-        quar_dir.mkdir(parents=True, exist_ok=True)
-        
-        df_quar = pd.DataFrame(quarantine_records)
-        quar_path = quar_dir / f"malformed_sales_{timestamp}.parquet"
-        # Convert all to string to avoid Parquet type inference issues with mixed types in quarantine
-        df_quar = df_quar.astype(str)
-        df_quar.to_parquet(quar_path, index=False)
-        print(f"[Dead Letter] Saved {len(quarantine_records)} invalid records to Quarantine: {quar_path}")
+        if valid_analytical:
+            bronze_dir = base_dir / "bronze" / f"ingestion_date={timestamp[:8]}"
+            bronze_dir.mkdir(parents=True, exist_ok=True)
+            
+            df_valid = pd.DataFrame(valid_analytical)
+            bronze_path = bronze_dir / f"valid_sales_{timestamp}.parquet"
+            df_valid.to_parquet(bronze_path, index=False)
+            print(f"[Success] Saved {len(valid_analytical)} valid records to Local Bronze: {bronze_path}")
+            
+        if quarantine_records:
+            quar_dir = base_dir / "quarantine" / f"ingestion_date={timestamp[:8]}"
+            quar_dir.mkdir(parents=True, exist_ok=True)
+            
+            df_quar = pd.DataFrame(quarantine_records).astype(str)
+            quar_path = quar_dir / f"malformed_sales_{timestamp}.parquet"
+            df_quar.to_parquet(quar_path, index=False)
+            print(f"[Dead Letter] Saved {len(quarantine_records)} invalid records to Local Quarantine: {quar_path}")
         
     print(f"\n[Summary] Processed {len(df)} rows.")
     print(f" - Valid (Bronze): {len(valid_analytical)}")
     print(f" - Malformed (Quarantine): {len(quarantine_records)}")
+    
+    return {
+        "processed": len(df),
+        "valid": len(valid_analytical),
+        "quarantined": len(quarantine_records)
+    }
 
 if __name__ == "__main__":
     import argparse

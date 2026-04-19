@@ -35,8 +35,13 @@ trigger: always_on
   - *Decisão:* Adotamos o suporte nativo do Terraform 1.10+ para state locking (`use_lockfile = true`), abolindo a necessidade do DynamoDB para state lock.
   - *Ação:* Migração do `terraform.tfstate` de Base-Local concluído integralmente para o S3 Backend Automático.
 
+- **[2026-04-19] Orquestração Serverless (Fase C):**
+  - *Decisão:* Substituição do projeto inicial "Airflow isolado no Docker" por uma infraestrutura limpa e orientada a eventos para maximizar uso do Free Tier (Lambda + EventBridge).
+  - *Ação:* Provisionada função IAM Least-Privilege e AWS Lambda (`lambda_handler.py`) contendo apenas as regras de negócio em Pydantic. Utilizamos a camada "AWS SDK Pandas" da AWS para importar pacotes pesados como PyArrow sem engordar o build ZIP.
+  - *Ação:* Provisionado alvo EventBridge agendado mensalmente para invocar a Lambda automaticamente enviando um JSON injetável (`source: mock`).
+
 ## Bloqueios / Pontos de Atenção
-- Orquestração Airflow / Lambda Event triggers estão pendentes para integrar a extração com o deploy do Bucket.
+- Orquestração principal efetuada com fluxo de Ingestão S3 testado ponta-a-ponta. O próximo desafio é disparar o *The Split* (Iceberg / Operational) usando o AWS Glue.
 
 ## Próximos Passos (To-Do)
 1. ~~Criar a estrutura inicial de pastas do repositório.~~ *(Concluído)*
@@ -44,3 +49,5 @@ trigger: always_on
 3. ~~Atualizar scripts de ingestão e extração para o novo dataset.~~ *(Concluído em 2026-04-19)*
 4. ~~Iniciar o provisionamento do backend do Terraform (S3 State).~~ *(Concluído)*
 5. ~~Configurar alertas de orçamentos (AWS Budgets) via `.env`.~~ *(Concluído)*
+6. ~~Desenvolver orquestração da Ingestão na AWS (Evento -> Lambda).~~ *(Concluído)*
+7. Desenvolver script AWS Glue para divisão dos dados (Iceberg no Silver e API no DynamoDB).
