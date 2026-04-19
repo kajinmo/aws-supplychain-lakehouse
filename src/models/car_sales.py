@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, validator
 from typing import Optional
 
 class CarSalesAnalytical(BaseModel):
@@ -12,8 +12,7 @@ class CarSalesAnalytical(BaseModel):
     quantity: int = Field(..., alias="Quantity", ge=0, description="Total units sold.")
     pct: float = Field(..., alias="Pct", description="Market share percentage.")
 
-    @field_validator("make")
-    @classmethod
+    @validator("make")
     def validate_not_empty(cls, value: str) -> str:
         """Ensure the manufacturer name is not an empty string."""
         clean_value = value.strip()

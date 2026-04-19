@@ -6,8 +6,6 @@ from pathlib import Path
 from datetime import datetime
 from pydantic import ValidationError
 
-# Ensure we can import from src
-sys.path.append(os.path.abspath("src"))
 from models.car_sales import CarSalesAnalytical, CarSalesApplication
 
 def extract_and_validate(csv_path: str):
@@ -33,7 +31,7 @@ def extract_and_validate(csv_path: str):
             # We validate the row. If it passes, it is ready for Bronze.
             # Using alias mapping provided by Pydantic
             analytical_model = CarSalesAnalytical(**row_dict)
-            valid_analytical.append(analytical_model.model_dump())
+            valid_analytical.append(analytical_model.dict(by_alias=True))
             
         except ValidationError as e:
             # Add error reasons to the row

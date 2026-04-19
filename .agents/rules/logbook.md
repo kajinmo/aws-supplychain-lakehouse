@@ -38,6 +38,7 @@ trigger: always_on
 - **[2026-04-19] Orquestração Serverless (Fase C):**
   - *Decisão:* Substituição do projeto inicial "Airflow isolado no Docker" por uma infraestrutura limpa e orientada a eventos para maximizar uso do Free Tier (Lambda + EventBridge).
   - *Ação:* Provisionada função IAM Least-Privilege e AWS Lambda (`lambda_handler.py`) contendo apenas as regras de negócio em Pydantic. Utilizamos a camada "AWS SDK Pandas" da AWS para importar pacotes pesados como PyArrow sem engordar o build ZIP.
+  - *Decisão:* Para contornar a dependência do compilador C/Rust no deploy Windows->Linux da Lambda, realizamos o downgrade intencional dos Data Contracts para o `Pydantic v1`. Ele suporta fallbacks "Pure Python" universais, garantindo a execução Serverless.
   - *Ação:* Provisionado alvo EventBridge agendado mensalmente para invocar a Lambda automaticamente enviando um JSON injetável (`source: mock`).
 
 ## Bloqueios / Pontos de Atenção

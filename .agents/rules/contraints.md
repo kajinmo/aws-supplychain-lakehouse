@@ -13,8 +13,8 @@ Educational portfolio project demonstrating a modern, dual-serving data pipeline
 ## Tech Stack
 | Layer | Technology |
 |-------|------------|
-| Ingestion & Quality | Python 3.12+, Kaggle API, `pydantic` (Strict Contracts) |
-| Orchestration | Future scope: Airflow (Local/Docker) |
+| Ingestion & Quality | Python 3.12+, Kaggle API, `pydantic` v1 (Cross-platform compatibility) |
+| Orchestration | AWS Lambda + Amazon EventBridge (Serverless, No Airflow/Docker) |
 | Processing | AWS Glue (Spark or Python Shell), `boto3` |
 | Analytical Storage | Amazon S3, Apache Iceberg, AWS Glue Data Catalog |
 | Operational Storage | Amazon DynamoDB (NoSQL) |
@@ -48,6 +48,7 @@ Kaggle Norway Car Sales Dataset → [Python Extractor + Pydantic Gate]
 
 ## Engineering Standards
 - **Language**: Python 3.12+ with type hints, PEP8 compliance.
+- **Git & Commits**: All commit messages MUST be written strictly in **English**.
 - **Pydantic**: Separate Analytical Models (all columns) from Application Models (only columns needed for API).
 - **NoSQL Modeling**: Follow the `make` + `year_month` pattern to support time-series access patterns (e.g., "Get Tesla sales for the last 24 months").
 - **Config Management**: No hardcoded secrets/paths. Use `boto3` or environment variables.
