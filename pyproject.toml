@@ -7,5 +7,6 @@ requires-python = ">=3.12"
 dependencies = [
     "kaggle>=2.0.1",
     "pandas>=3.0.2",
+    "pyarrow>=23.0.1",
     "pydantic>=2.13.2",
 ]

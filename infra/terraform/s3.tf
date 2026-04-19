@@ -52,6 +52,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "quarantine_lifecycle" {
     id     = "expire_quarantine_records"
     status = "Enabled"
 
+    filter {} # Required by provider 5.x
+
     expiration {
       days = 30 # Delete malformed records after 30 days to save costs
     }

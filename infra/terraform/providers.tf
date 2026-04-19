@@ -8,10 +8,14 @@ terraform {
     }
   }
 
-  # We use local backend for Phase 1. 
-  # We will migrate to an S3 backend after the core S3/DynamoDB resources are provisioned.
-  backend "local" {
-    path = "terraform.tfstate"
+  # Remote Backend: S3 (with Native State Lock)
+  # Activated use_lockfile to replace deprecated DynamoDB locking
+  backend "s3" {
+    bucket       = "car-sales-lakehouse-tfstate-324037321692"
+    key          = "lakehouse/terraform.tfstate"
+    region       = "us-east-1"
+    use_lockfile = true
+    encrypt      = true
   }
 }
 

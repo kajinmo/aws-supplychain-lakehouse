@@ -24,12 +24,23 @@ trigger: always_on
   - *Segurança:* Implementação do `aws_budgets_budget` limitando custos a USD 2.00 e envio de alertas usando configuração `TF_VAR_` via `.env`.
   - *Resiliência:* Adicionada proteção contra exclusão não-intencional (`force_destroy = false`) nos buckets S3 (Bronze, Silver e Quarentena).
 
+- **[2026-04-19] Refatoração do Pipeline de Ingestão Python (Fase B/Qualidade):**
+  - *Decisão:* Separação explícita de registros "sãos" e "malformados" (Fail-Fast) antes da Cloud.
+  - *Decisão:* Adoção do formato `.parquet` via `pyarrow` para os logs de ingestão visando reduzir custos posteriores e melhorar a integração com Athena.
+  - *Ação:* Atualizado `extractor.py` para `ingestion_job.py`, que agora despeja dados aprovados em `data/bronze/` e erros em `data/quarantine/`.
+  - *Ação:* Criado um orquestrador CLI (`run_pipeline.py`) que baixa dados da API do Kaggle por padrão, com suporte a injeção de caos local (`--mock`).
+
+- **[2026-04-19] Provisionamento de Infraestrutura e Remote State (Fase A):**
+  - *Ação:* Provisionados S3 Buckets (`bronze`, `silver`, `quarantine`), DynamoDB (`operational`) e AWS Budget Alarmes na conta da AWS.
+  - *Decisão:* Adotamos o suporte nativo do Terraform 1.10+ para state locking (`use_lockfile = true`), abolindo a necessidade do DynamoDB para state lock.
+  - *Ação:* Migração do `terraform.tfstate` de Base-Local concluído integralmente para o S3 Backend Automático.
+
 ## Bloqueios / Pontos de Atenção
-- Configurar o AWS Budget Alert na conta da AWS antes de provisionar qualquer recurso via Terraform para garantir o limite de custos (Free Tier).
+- Orquestração Airflow / Lambda Event triggers estão pendentes para integrar a extração com o deploy do Bucket.
 
 ## Próximos Passos (To-Do)
 1. ~~Criar a estrutura inicial de pastas do repositório.~~ *(Concluído)*
 2. ~~Desenvolver modelos Pydantic (Car Sales).~~ *(Concluído)*
-3. Atualizar scripts de ingestão e extração para o novo dataset.
-4. Iniciar o provisionamento do backend do Terraform (State Lock / S3 e DynamoDB).
-5. Configurar alertas de orçamentos (AWS Budgets).
+3. ~~Atualizar scripts de ingestão e extração para o novo dataset.~~ *(Concluído em 2026-04-19)*
+4. ~~Iniciar o provisionamento do backend do Terraform (S3 State).~~ *(Concluído)*
+5. ~~Configurar alertas de orçamentos (AWS Budgets) via `.env`.~~ *(Concluído)*
