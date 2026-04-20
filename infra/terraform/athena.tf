@@ -7,7 +7,7 @@ resource "aws_athena_workgroup" "lakehouse_workgroup" {
   configuration {
     result_configuration {
       output_location = "s3://${aws_s3_bucket.athena_results.bucket}/results/"
-      
+
       encryption_configuration {
         encryption_option = "SSE_S3"
       }

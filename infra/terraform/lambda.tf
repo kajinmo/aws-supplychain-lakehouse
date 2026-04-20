@@ -27,14 +27,14 @@ resource "aws_lambda_function" "ingestion_lambda" {
 }
 
 # --- EventBridge Scheduler --- #
-resource "aws_cloudwatch_event_rule" "monthly_ingestion" {
-  name                = "${var.project_name}-monthly-ingestion"
-  description         = "Triggers the pipeline with mock chaos on the 1st of every month"
-  schedule_expression = "cron(0 12 1 * ? *)" # 1st day of the month at 12:00 UTC
+resource "aws_cloudwatch_event_rule" "hourly_ingestion" {
+  name                = "${var.project_name}-hourly-ingestion"
+  description         = "Triggers mock ingestion every hour to simulate continuous data arrival"
+  schedule_expression = "rate(1 hour)"
 }
 
 resource "aws_cloudwatch_event_target" "lambda_target" {
-  rule      = aws_cloudwatch_event_rule.monthly_ingestion.name
+  rule      = aws_cloudwatch_event_rule.hourly_ingestion.name
   target_id = "TriggerLambda"
   arn       = aws_lambda_function.ingestion_lambda.arn
 
@@ -50,5 +50,5 @@ resource "aws_lambda_permission" "allow_eventbridge_to_invoke_lambda" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.ingestion_lambda.function_name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.monthly_ingestion.arn
+  source_arn    = aws_cloudwatch_event_rule.hourly_ingestion.arn
 }

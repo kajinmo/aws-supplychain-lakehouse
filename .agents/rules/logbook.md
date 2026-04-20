@@ -47,8 +47,12 @@ trigger: always_on
   - *Ação:* Implementada transformação PySpark usando `withColumn`, `lpad` e `concat` para garantir chaves PK/SK compatíveis com o NoSQL.
   - *Ação:* Scripts atualizados no S3 via `terraform apply` automático.
 
+- **[2026-04-20] Pivot Orquestração Épico 5:**
+  - *Decisão:* Mudança de gatilho "Event-Driven S3" por Agendamento Misto (Ingestão de 1h em 1h, Processamento às 19:00 BRT).
+  - *Arquitetura (Scale & Save):* Adoção de AWS Step Functions. O fluxo consistirá em: (A) Lambda escala DynamoDB para PROVISIONED -> (B) Glue Job consolida o batch diário no S3/Dynamo -> (C) Lambda retrocede o Banco para PAY_PER_REQUEST.
+
 ## Bloqueios / Pontos de Atenção
-- Orquestração principal efetuada com fluxo de Ingestão S3 testado ponta-a-ponta. O próximo desafio é disparar o *The Split* (Iceberg / Operational) usando o AWS Glue.
+- RESTRIÇÃO DE ENGENHARIA AWS: Só é permitido alternar o DynamoDB de `Provisioned` para `On-Demand` **uma (1) vez a cada 24 horas**. Essa restrição da AWS se encaixa no batch "Diário", mas nos impede de rodar o ambiente completo no Step Functions várias vezes na mesma tarde.
 
 ## Próximos Passos (To-Do)
 1. ~~Criar a estrutura inicial de pastas do repositório.~~ *(Concluído)*
@@ -58,6 +62,7 @@ trigger: always_on
 5. ~~Configurar alertas de orçamentos (AWS Budgets) via `.env`.~~ *(Concluído)*
 6. ~~Desenvolver orquestração da Ingestão na AWS (Evento -> Lambda).~~ *(Concluído)*
 7. ~~Desenvolver script AWS Glue para divisão dos dados (Iceberg no Silver e API no DynamoDB).~~ *(Concluído)*
-8. Validar a execução completa do Glue Job e observar a ingestão no Console do DynamoDB.
-9. Refatorar o disparo do AWS Glue de "Manual" para "Gatilho Automático" após consolidação do Épico 4.
-10. Incluir justificativa arquitetural do envio paralelo ('The Split') minimizando double-reads (S3->Dynamo) no `README.md`.
+8. Validar a execução completa do Glue Job e observar a ingestão no Console do DynamoDB. *(Concluído)*
+9. Criar arquitetura do Épico 5: Lambdas de Scaling do DynamoDB.
+10. Criar AWS Step Functions que orquestre Scaling -> Glue -> Descaling.
+11. Ajustar Triggers via EventBridge (Cron para 1h mock e 19:00 BRT para o batch).
