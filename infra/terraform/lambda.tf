@@ -26,29 +26,68 @@ resource "aws_lambda_function" "ingestion_lambda" {
   }
 }
 
-# --- EventBridge Scheduler --- #
-resource "aws_cloudwatch_event_rule" "hourly_ingestion" {
-  name                = "${var.project_name}-hourly-ingestion"
-  description         = "Triggers mock ingestion every hour to simulate continuous data arrival"
-  schedule_expression = "rate(1 hour)"
+# ==========================================
+# EventBridge Scheduler (Modern): Hourly Mock Ingestion
+# ==========================================
+
+# IAM: Allow Scheduler to invoke the ingestion Lambda
+data "aws_iam_policy_document" "scheduler_lambda_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["scheduler.amazonaws.com"]
+    }
+  }
 }
 
-resource "aws_cloudwatch_event_target" "lambda_target" {
-  rule      = aws_cloudwatch_event_rule.hourly_ingestion.name
-  target_id = "TriggerLambda"
-  arn       = aws_lambda_function.ingestion_lambda.arn
-
-  # Inject the payload specific for our mock generator
-  input = jsonencode({
-    "source" : "mock",
-    "chaos" : true
-  })
+data "aws_iam_policy_document" "scheduler_lambda_policy" {
+  statement {
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.ingestion_lambda.arn]
+  }
 }
 
-resource "aws_lambda_permission" "allow_eventbridge_to_invoke_lambda" {
-  statement_id  = "AllowExecutionFromEventBridge"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.ingestion_lambda.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.hourly_ingestion.arn
+resource "aws_iam_role" "scheduler_lambda_role" {
+  name               = "${var.project_name}-scheduler-lambda-role"
+  assume_role_policy = data.aws_iam_policy_document.scheduler_lambda_assume.json
+}
+
+resource "aws_iam_policy" "scheduler_lambda" {
+  name   = "${var.project_name}-scheduler-lambda-policy"
+  policy = data.aws_iam_policy_document.scheduler_lambda_policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "scheduler_lambda_attach" {
+  role       = aws_iam_role.scheduler_lambda_role.name
+  policy_arn = aws_iam_policy.scheduler_lambda.arn
+}
+
+# Fires every hour, injecting mock chaos payload into the Lambda
+resource "aws_scheduler_schedule" "hourly_ingestion" {
+  name       = "${var.project_name}-hourly-ingestion"
+  group_name = "default"
+
+  schedule_expression          = "rate(1 hour)"
+  schedule_expression_timezone = "America/Sao_Paulo"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = aws_lambda_function.ingestion_lambda.arn
+    role_arn = aws_iam_role.scheduler_lambda_role.arn
+
+    # Inject the same mock payload our Lambda expects
+    input = jsonencode({
+      source = "mock"
+      chaos  = true
+    })
+
+    retry_policy {
+      maximum_retry_attempts       = 1
+      maximum_event_age_in_seconds = 1800 # Discard stale ingestion after 30 min
+    }
+  }
 }
