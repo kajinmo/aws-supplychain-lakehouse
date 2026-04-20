@@ -59,3 +59,24 @@ resource "aws_s3_bucket_lifecycle_configuration" "quarantine_lifecycle" {
     }
   }
 }
+
+# Athena Results: Temporary storage for SQL query results
+resource "aws_s3_bucket" "athena_results" {
+  bucket        = "${var.project_name}-athena-results-${local.bucket_suffix}"
+  force_destroy = true # Safe to delete results as they are temporary
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "athena_results_lifecycle" {
+  bucket = aws_s3_bucket.athena_results.id
+
+  rule {
+    id     = "expire_results_after_1_day"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      days = 1 # Keep environment clean and avoid storage costs
+    }
+  }
+}

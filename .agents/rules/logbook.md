@@ -41,6 +41,12 @@ trigger: always_on
   - *Decisão:* Para contornar a dependência do compilador C/Rust no deploy Windows->Linux da Lambda, realizamos o downgrade intencional dos Data Contracts para o `Pydantic v1`. Ele suporta fallbacks "Pure Python" universais, garantindo a execução Serverless.
   - *Ação:* Provisionado alvo EventBridge agendado mensalmente para invocar a Lambda automaticamente enviando um JSON injetável (`source: mock`).
 
+- **[2026-04-20] Correção de Mapping no Glue (The Split):**
+  - *Bug:* Erro `The provided key element does not match the schema` ao gravar no DynamoDB.
+  - *Causa:* Descompasso entre nomes de colunas na Bronze (Make, Year, Month) e as chaves esperadas no DynamoDB (manufacturer, year_month).
+  - *Ação:* Implementada transformação PySpark usando `withColumn`, `lpad` e `concat` para garantir chaves PK/SK compatíveis com o NoSQL.
+  - *Ação:* Scripts atualizados no S3 via `terraform apply` automático.
+
 ## Bloqueios / Pontos de Atenção
 - Orquestração principal efetuada com fluxo de Ingestão S3 testado ponta-a-ponta. O próximo desafio é disparar o *The Split* (Iceberg / Operational) usando o AWS Glue.
 
@@ -51,6 +57,7 @@ trigger: always_on
 4. ~~Iniciar o provisionamento do backend do Terraform (S3 State).~~ *(Concluído)*
 5. ~~Configurar alertas de orçamentos (AWS Budgets) via `.env`.~~ *(Concluído)*
 6. ~~Desenvolver orquestração da Ingestão na AWS (Evento -> Lambda).~~ *(Concluído)*
-7. Desenvolver script AWS Glue para divisão dos dados (Iceberg no Silver e API no DynamoDB).
-8. Refatorar o disparo do AWS Glue de "Manual" para "Gatilho Automático" após consolidação do Épico 4.
-9. Incluir justificativa arquitetural do envio paralelo ('The Split') minimizando double-reads (S3->Dynamo) no `README.md`.
+7. ~~Desenvolver script AWS Glue para divisão dos dados (Iceberg no Silver e API no DynamoDB).~~ *(Concluído)*
+8. Validar a execução completa do Glue Job e observar a ingestão no Console do DynamoDB.
+9. Refatorar o disparo do AWS Glue de "Manual" para "Gatilho Automático" após consolidação do Épico 4.
+10. Incluir justificativa arquitetural do envio paralelo ('The Split') minimizando double-reads (S3->Dynamo) no `README.md`.
