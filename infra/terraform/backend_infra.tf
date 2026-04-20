@@ -1,9 +1,5 @@
-# This bucket will store the Terraform state.
-# We will use the S3 native Conditional Writes (use_lockfile = true) for locking, available in Terraform 1.10+
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "${var.project_name}-tfstate-${local.bucket_suffix}"
-
-  # Safe guard: Prevents accidental destruction of state.
+  bucket        = "${var.project_name}-tfstate-${local.bucket_suffix}"
   force_destroy = false
 }
 

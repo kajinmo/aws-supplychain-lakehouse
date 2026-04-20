@@ -1,7 +1,7 @@
 resource "aws_budgets_budget" "lakehouse_safety_budget" {
   name              = "${var.project_name}-safety-budget"
   budget_type       = "COST"
-  limit_amount      = "2.00"  # User requested $2 USD max
+  limit_amount      = "2.00"
   limit_unit        = "USD"
   time_period_start = "2024-01-01_00:00"
   time_unit         = "MONTHLY"

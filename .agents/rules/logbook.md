@@ -52,3 +52,5 @@ trigger: always_on
 5. ~~Configurar alertas de orçamentos (AWS Budgets) via `.env`.~~ *(Concluído)*
 6. ~~Desenvolver orquestração da Ingestão na AWS (Evento -> Lambda).~~ *(Concluído)*
 7. Desenvolver script AWS Glue para divisão dos dados (Iceberg no Silver e API no DynamoDB).
+8. Refatorar o disparo do AWS Glue de "Manual" para "Gatilho Automático" após consolidação do Épico 4.
+9. Incluir justificativa arquitetural do envio paralelo ('The Split') minimizando double-reads (S3->Dynamo) no `README.md`.
