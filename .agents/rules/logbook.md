@@ -64,5 +64,7 @@ trigger: always_on
 7. ~~Desenvolver script AWS Glue para divisão dos dados (Iceberg no Silver e API no DynamoDB).~~ *(Concluído)*
 8. Validar a execução completa do Glue Job e observar a ingestão no Console do DynamoDB. *(Concluído)*
 9. Criar arquitetura do Épico 5: Lambdas de Scaling do DynamoDB.
-10. Criar AWS Step Functions que orquestre Scaling -> Glue -> Descaling.
-11. Ajustar Triggers via EventBridge (Cron para 1h mock e 19:00 BRT para o batch).
+10. ~~Criar AWS Step Functions que orquestre Scaling -> Glue -> Descaling.~~ *(Concluído)*
+11. ~~Ajustar Triggers via EventBridge (Cron para 1h mock e 19:00 BRT para o batch).~~ *(Concluído)*
+12. Validar execução automática do Step Functions no console AWS. *(Concluído às 19:50 BRT)*
+13. Iniciar Épico 6: Operational API (Gateway + Lambda).
