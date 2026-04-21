@@ -6,11 +6,6 @@ trigger: always_on
 
 *This document is the Agent's short-term memory. It must be updated at the end of every significant coding task or architectural decision.*
 
-## Status Atual
-- **Épico Ativo:** Épico 1 - Fundação da Infraestrutura (Terraform) / Épico 2 - Ingestão e Quality Gate
-- **Branch/Feature Atual:** `main` (Setup inicial do projeto)
-- **Fase de Desenvolvimento:** Desenho arquitetural concluído. Iniciando a construção prática.
-
 ## Change Log & Decisões Arquiteturais
 *(Registre aqui as mudanças com a data e o racional técnico)*
 
@@ -51,20 +46,37 @@ trigger: always_on
   - *Decisão:* Mudança de gatilho "Event-Driven S3" por Agendamento Misto (Ingestão de 1h em 1h, Processamento às 19:00 BRT).
   - *Arquitetura (Scale & Save):* Adoção de AWS Step Functions. O fluxo consistirá em: (A) Lambda escala DynamoDB para PROVISIONED -> (B) Glue Job consolida o batch diário no S3/Dynamo -> (C) Lambda retrocede o Banco para PAY_PER_REQUEST.
 
+- **[2026-04-20] Épico 6: Operational API:**
+  - *Decisão:* Uso de API Gateway HTTP API (v2) em vez da REST API clássica. 70% mais barato e menor latência.
+  - *Ação:* Criada Lambda `operational_api.py` com rotas `GET /sales` e `GET /sales/{manufacturer}?year=XXXX`.
+  - *Ação:* IAM Least Privilege com apenas `dynamodb:Query`, `dynamodb:Scan` e `dynamodb:GetItem`.
+  - *Validação:* API testada com sucesso via curl. Endpoint: `https://oforctm94m.execute-api.us-east-1.amazonaws.com`
+
+- **[2026-04-21] Épico 8: Frontend Streamlit (Concluído):**
+  - *Ação:* Desenvolvido o dashboard completo com 4 páginas (Home, Analytics, Explorer, Health).
+  - *Ação:* Implementada integração dual-serving com API Gateway (DynamoDB) e Athena (Gold Layer).
+  - *Ação:* Aplicada política de cache (`st.cache_data`) para otimização de custos AWS.
+  - *Ação:* Implementada observabilidade da Quarentena (erros Pydantic) no dashboard de saúde.
+  - *Validação:* App compilado e estruturado com sucesso.
+
 ## Bloqueios / Pontos de Atenção
-- RESTRIÇÃO DE ENGENHARIA AWS: Só é permitido alternar o DynamoDB de `Provisioned` para `On-Demand` **uma (1) vez a cada 24 horas**. Essa restrição da AWS se encaixa no batch "Diário", mas nos impede de rodar o ambiente completo no Step Functions várias vezes na mesma tarde.
+- RESTRIÇÃO DE ENGENHARIA AWS: Só é permitido alternar o DynamoDB de `Provisioned` para `On-Demand` **uma (1) vez a cada 24 horas**. Esse restrição da AWS se encaixa no batch "Diário", mas nos impede de rodar o ambiente completo no Step Functions várias vezes na mesma tarde.
 
 ## Próximos Passos (To-Do)
 1. ~~Criar a estrutura inicial de pastas do repositório.~~ *(Concluído)*
 2. ~~Desenvolver modelos Pydantic (Car Sales).~~ *(Concluído)*
-3. ~~Atualizar scripts de ingestão e extração para o novo dataset.~~ *(Concluído em 2026-04-19)*
+3. ~~Atualizar scripts de ingestão e extração para o novo dataset.~~ *(Concluído)*
 4. ~~Iniciar o provisionamento do backend do Terraform (S3 State).~~ *(Concluído)*
 5. ~~Configurar alertas de orçamentos (AWS Budgets) via `.env`.~~ *(Concluído)*
 6. ~~Desenvolver orquestração da Ingestão na AWS (Evento -> Lambda).~~ *(Concluído)*
 7. ~~Desenvolver script AWS Glue para divisão dos dados (Iceberg no Silver e API no DynamoDB).~~ *(Concluído)*
-8. Validar a execução completa do Glue Job e observar a ingestão no Console do DynamoDB. *(Concluído)*
-9. Criar arquitetura do Épico 5: Lambdas de Scaling do DynamoDB.
+8. ~~Validar a execução completa do Glue Job e observar a ingestão no Console do DynamoDB.~~ *(Concluído)*
+9. ~~Criar arquitetura do Épico 5: Lambdas de Scaling do DynamoDB.~~ *(Concluído)*
 10. ~~Criar AWS Step Functions que orquestre Scaling -> Glue -> Descaling.~~ *(Concluído)*
 11. ~~Ajustar Triggers via EventBridge (Cron para 1h mock e 19:00 BRT para o batch).~~ *(Concluído)*
-12. Validar execução automática do Step Functions no console AWS. *(Concluído às 19:50 BRT)*
-13. Iniciar Épico 6: Operational API (Gateway + Lambda).
+12. ~~Validar execução automática do Step Functions no console AWS.~~ *(Concluído)*
+13. ~~Iniciar Épico 6: Operational API (Gateway + Lambda).~~ *(Concluído)*
+14. ~~Iniciar Épico 7: Gold Layer — Athena Views + Tabela Quarantine.~~ *(Concluído)*
+15. ~~Iniciar Épico 8: Frontend Streamlit consumindo API + Athena.~~ *(Concluído)*
+
+**PROJETO ENTREGUE PARA PRODUÇÃO EM 21/04/2026.**
