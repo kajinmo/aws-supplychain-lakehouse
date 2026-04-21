@@ -1,0 +1,12 @@
+[theme]
+primaryColor = "#00D1FF"          # Azul Elétrico (Premium)
+backgroundColor = "#0E1117"     # Fundo Cinza Escuro (Padrão Streamlit Dark)
+secondaryBackgroundColor = "#161B22" # Fundo secundário (Cards/Sidebar)
+textColor = "#FFFFFF"
+font = "sans serif"
+
+[sidebar]
+showSidebarNavigation = true
+
+[ui]
+displayMode = "wide"
