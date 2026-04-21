@@ -2,7 +2,7 @@
 
 A production-ready Data Engineering project demonstrating a modern, serverless **Dual-Serving Architecture**. This project ingests historical automotive sales data from Norway, applies a strict quality gate, and bifurcates the data into an **Analytical Layer** (Apache Iceberg + Athena) and an **Operational Layer** (DynamoDB + API Gateway).
 
-## 🏛 Architecture
+## Architecture
 
 ```mermaid
 graph TD
@@ -35,7 +35,7 @@ graph TD
     end
 ```
 
-## 🛠 Tech Stack
+## Tech Stack
 
 - **Data Ingestion**: Python (Pydantic, Pandas, Kaggle API)
 - **Data Processing**: AWS Glue (PySpark), AWS Lambda
@@ -46,14 +46,14 @@ graph TD
 - **IaC**: Terraform
 - **Frontend**: Streamlit
 
-## ⚡ Key Features
+## Key Features
 
 - **Fail-Fast Quality Gate**: Uses Pydantic to validate data contracts at the entry point. Malformed records are immediately rerouted to a Quarantine Bucket.
 - **Dual-Serving Pattern**: Data is optimized for both sub-second API lookups (DynamoDB) and complex historical aggregation (Athena).
 - **Scale-and-Save Orchestration**: AWS Step Functions dynamically scales DynamoDB RCUs/WCUs before the batch job and descales them afterwards to maximize AWS Free Tier usage.
 - **Modern UI**: An interactive dashboard serving both "Real-time" metrics and historical trends from two different data sources seamlessly.
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -109,7 +109,7 @@ graph TD
    uv run streamlit run frontend/app.py
    ```
 
-## 📊 Data Source
+## Data Source
 Historical car sales data in Norway (2007-2017) sourced from Kaggle: [Norway New Car Sales](https://www.kaggle.com/datasets/lennat/norway-new-car-sales).
 
 ---
