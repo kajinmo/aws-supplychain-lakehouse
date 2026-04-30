@@ -1,3 +1,7 @@
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
 """
 Deploy Gold Layer Views to Amazon Athena.
 
@@ -108,9 +112,9 @@ def execute_query(
 
     Returns True if the query succeeded, False otherwise.
     """
-    print(f"\n{'='*60}")
-    print(f"  Deploying: {name}")
-    print(f"{'='*60}")
+    logger.info(f"\n{'='*60}")
+    logger.info(f"  Deploying: {name}")
+    logger.info(f"{'='*60}")
 
     try:
         response = client.start_query_execution(
@@ -119,11 +123,11 @@ def execute_query(
             WorkGroup=WORKGROUP,
         )
     except Exception as e:
-        print(f"  [FAIL] Failed to start query: {e}")
+        logger.error(f"  [FAIL] Failed to start query: {e}")
         return False
 
     execution_id = response["QueryExecutionId"]
-    print(f"  Execution ID: {execution_id}")
+    logger.info(f"  Execution ID: {execution_id}")
 
     # Poll until completion or timeout
     elapsed = 0
@@ -140,36 +144,36 @@ def execute_query(
             stats = result["QueryExecution"].get("Statistics", {})
             scan_bytes = stats.get("DataScannedInBytes", 0)
             exec_time = stats.get("EngineExecutionTimeInMillis", 0)
-            print(f"  [OK] SUCCEEDED in {exec_time}ms | Scanned: {scan_bytes} bytes")
+            logger.info(f"  [OK] SUCCEEDED in {exec_time}ms | Scanned: {scan_bytes} bytes")
             return True
         elif state in ("FAILED", "CANCELLED"):
             reason = result["QueryExecution"]["Status"].get(
                 "StateChangeReason", "Unknown"
             )
-            print(f"  [FAIL] {state}: {reason}")
+            logger.error(f"  [FAIL] {state}: {reason}")
             return False
 
-        print(f"  ... {state} ({elapsed}s)")
+        logger.info(f"  ... {state} ({elapsed}s)")
 
-    print(f"  [FAIL] TIMEOUT after {QUERY_TIMEOUT}s")
+    logger.error(f"  [FAIL] TIMEOUT after {QUERY_TIMEOUT}s")
     return False
 
 
 def main() -> None:
     """Deploy all Gold Layer views to Athena."""
-    print("=" * 60)
-    print("  Gold Layer Deployment - Athena Views")
-    print(f"  Database:  {DATABASE}")
-    print(f"  Workgroup: {WORKGROUP}")
-    print(f"  Region:    {REGION}")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("  Gold Layer Deployment - Athena Views")
+    logger.info(f"  Database:  {DATABASE}")
+    logger.info(f"  Workgroup: {WORKGROUP}")
+    logger.info(f"  Region:    {REGION}")
+    logger.info("=" * 60)
 
     if not SQL_FILE.exists():
-        print(f"\n[FAIL] SQL file not found: {SQL_FILE}")
+        logger.error(f"\n[FAIL] SQL file not found: {SQL_FILE}")
         sys.exit(1)
 
     statements = read_sql_statements(SQL_FILE)
-    print(f"\nFound {len(statements)} SQL statements to execute.")
+    logger.info(f"\nFound {len(statements)} SQL statements to execute.")
 
     client = boto3.client("athena", region_name=REGION)
 
@@ -179,7 +183,7 @@ def main() -> None:
 
     for i, stmt in enumerate(statements, 1):
         name = extract_statement_name(stmt)
-        print(f"\n[{i}/{len(statements)}]", end="")
+        logger.info(f"\n[{i}/{len(statements)}]", end="")
 
         success = execute_query(client, stmt, name)
         results.append((name, success))
@@ -190,22 +194,22 @@ def main() -> None:
             failed += 1
 
     # Summary report
-    print(f"\n\n{'='*60}")
-    print("  Deployment Summary")
-    print(f"{'='*60}")
-    print(f"  Total:     {len(statements)}")
-    print(f"  Succeeded: {succeeded}")
-    print(f"  Failed:    {failed}")
-    print(f"\n  Results:")
+    logger.info(f"\n\n{'='*60}")
+    logger.info("  Deployment Summary")
+    logger.info(f"{'='*60}")
+    logger.info(f"  Total:     {len(statements)}")
+    logger.info(f"  Succeeded: {succeeded}")
+    logger.info(f"  Failed:    {failed}")
+    logger.info(f"\n  Results:")
     for name, success in results:
         icon = "[OK]" if success else "[FAIL]"
-        print(f"    {icon} {name}")
+        logger.info(f"    {icon} {name}")
 
     if failed > 0:
-        print(f"\n[WARNING] {failed} statement(s) failed. Check errors above.")
+        logger.warning(f"\n[WARNING] {failed} statement(s) failed. Check errors above.")
         sys.exit(1)
     else:
-        print("\nAll Gold Layer views deployed successfully!")
+        logger.info("\nAll Gold Layer views deployed successfully!")
 
 
 if __name__ == "__main__":

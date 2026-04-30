@@ -1,3 +1,7 @@
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
 """
 Lambda: Scale Down DynamoDB to On-Demand Mode.
 
@@ -18,7 +22,7 @@ def lambda_handler(event: dict, context) -> dict:
     client = boto3.client("dynamodb")
     table_name = os.environ["DYNAMODB_TABLE_NAME"]
 
-    print(f"[ScaleDown] Switching table '{table_name}' to PAY_PER_REQUEST mode...")
+    logger.info(f"[ScaleDown] Switching table '{table_name}' to PAY_PER_REQUEST mode...")
 
     response = client.update_table(
         TableName=table_name,
@@ -26,7 +30,7 @@ def lambda_handler(event: dict, context) -> dict:
     )
 
     new_status = response["TableDescription"]["TableStatus"]
-    print(f"[ScaleDown] Table status: {new_status}")
+    logger.info(f"[ScaleDown] Table status: {new_status}")
 
     return {
         "statusCode": 200,

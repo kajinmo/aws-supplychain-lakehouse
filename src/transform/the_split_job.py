@@ -1,3 +1,7 @@
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
 import sys
 from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
@@ -27,7 +31,7 @@ job.init(args['JOB_NAME'], args)
 # ==========================================
 bronze_path = f"s3://{args['BRONZE_BUCKET_NAME']}/"
 
-print(f"Lendo dados Parquet do bucket Bronze: {bronze_path}")
+logger.info(f"Lendo dados Parquet do bucket Bronze: {bronze_path}")
 
 df_bronze = spark.read.parquet(bronze_path)
 df_bronze.cache()
@@ -36,7 +40,7 @@ df_bronze.printSchema()
 # ==========================================
 # ROTA 1: ESCALA ANALÍTICA COM APACHE ICEBERG
 # ==========================================
-print("Iniciando gravação na Rota 1 (Apache Iceberg)...")
+logger.info("Iniciando gravação na Rota 1 (Apache Iceberg)...")
 
 db_name = "lakehouse_db"
 table_name = "norway_car_sales_silver"
@@ -49,12 +53,12 @@ iceberg_path = f"s3://{args['SILVER_BUCKET_NAME']}/iceberg/{table_name}/"
     .partitionedBy("year")
     .createOrReplace())
 
-print("Rota 1 (Iceberg) concluída com sucesso!")
+logger.info("Rota 1 (Iceberg) concluída com sucesso!")
 
 # ==========================================
 # ROTA 2: OPERACIONAL (DYNAMODB)
 # ==========================================
-print(f"Iniciando gravação na Rota 2 (DynamoDB) na tabela: {args['DYNAMODB_TABLE_NAME']} ...")
+logger.info(f"Iniciando gravação na Rota 2 (DynamoDB) na tabela: {args['DYNAMODB_TABLE_NAME']} ...")
 
 # 1. Mapeamento de Dados (Data Mapping)
 # Transformamos o schema do Bronze para o schema exigido pelo DynamoDB (PK/SK)
@@ -80,6 +84,6 @@ glueContext.write_dynamic_frame.from_options(
     }
 )
 
-print("Rota 2 (DynamoDB) concluída com sucesso!")
+logger.info("Rota 2 (DynamoDB) concluída com sucesso!")
 
 job.commit()

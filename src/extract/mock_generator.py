@@ -1,3 +1,7 @@
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
 import csv
 import random
 import os
@@ -9,17 +13,12 @@ BRANDS = [
     "BMW", "Audi", "Nissan", "Ford", "Kia", "Hyundai", "BYD"
 ]
 
-def generate_mock_sales(output_dir: str = "data", inject_chaos: bool = False):
+def generate_mock_sales(output_dir: str = "data", inject_chaos: bool = False, year: int = 2017, month: int = 2):
     """
-    Simulates a daily/monthly data ingestion job by generating random car sales data.
-    If inject_chaos is True, it will purposefully create some malformed records
-    to test the Pydantic Quality Gate (e.g. Negative Quantities, Missing Make).
+    Simulates data ingestion by generating random car sales data.
+    Defaulted to 2017/02 to align with Norway Car Sales historical data end-point.
     """
     os.makedirs(output_dir, exist_ok=True)
-    
-    now = datetime.now()
-    year = now.year
-    month = now.month
     
     # Generate a random total market size for the month
     total_market_sales = random.randint(8000, 15000)
@@ -46,7 +45,7 @@ def generate_mock_sales(output_dir: str = "data", inject_chaos: bool = False):
     
     # Inject Chaos! (Chaos Engineering for our Fail-Fast Gate)
     if inject_chaos:
-        print("[WARNING] Chaos Engineering enabled: Injecting malformed records!")
+        logger.warning("[WARNING] Chaos Engineering enabled: Injecting malformed records!")
         records.append({
             "Year": year,
             "Month": month,
@@ -71,8 +70,8 @@ def generate_mock_sales(output_dir: str = "data", inject_chaos: bool = False):
         writer.writeheader()
         writer.writerows(records)
         
-    print(f"[SUCCESS] Mock dataset generated at: {filename}")
-    print(f"Total records generated: {len(records)}")
+    logger.info(f"[SUCCESS] Mock dataset generated at: {filename}")
+    logger.info(f"Total records generated: {len(records)}")
     
     return filename
 

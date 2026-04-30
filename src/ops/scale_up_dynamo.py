@@ -1,3 +1,7 @@
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
 """
 Lambda: Scale Up DynamoDB to Provisioned Mode.
 
@@ -14,7 +18,7 @@ def lambda_handler(event: dict, context) -> dict:
     client = boto3.client("dynamodb")
     table_name = os.environ["DYNAMODB_TABLE_NAME"]
 
-    print(f"[ScaleUp] Switching table '{table_name}' to PROVISIONED mode...")
+    logger.info(f"[ScaleUp] Switching table '{table_name}' to PROVISIONED mode...")
 
     response = client.update_table(
         TableName=table_name,
@@ -26,7 +30,7 @@ def lambda_handler(event: dict, context) -> dict:
     )
 
     new_status = response["TableDescription"]["TableStatus"]
-    print(f"[ScaleUp] Table status: {new_status}")
+    logger.info(f"[ScaleUp] Table status: {new_status}")
 
     return {
         "statusCode": 200,

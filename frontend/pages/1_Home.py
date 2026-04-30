@@ -84,6 +84,8 @@ def display_home():
                 # Ensure correct casing for Plotly (Athena uses different aliases sometimes, 
                 # but our Silver table has quantity/manufacturer. 
                 # Let's ensure consistency here.)
+                unique_months = sorted(trend_df["year_month"].unique())[-36:]
+                trend_df = trend_df[trend_df["year_month"].isin(unique_months)]
                 trend_df = trend_df.sort_values("year_month")
                 
                 fig_line = px.line(

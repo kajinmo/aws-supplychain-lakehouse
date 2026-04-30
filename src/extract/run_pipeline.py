@@ -1,3 +1,7 @@
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
 import argparse
 import sys
 import os
@@ -21,7 +25,7 @@ def main():
     csv_path = ""
     
     if args.mock:
-        print("\n=== Running Pipeline with MOCK DATA ===")
+        logger.info("\n=== Running Pipeline with MOCK DATA ===")
         # Generate mock mock dataset inside data/ folder
         generate_mock_sales("data", inject_chaos=args.chaos)
         
@@ -32,20 +36,20 @@ def main():
         if os.path.exists(mock_file):
             csv_path = mock_file
         else:
-            print("[Error] Failed to locate generated mock file.")
+            logger.error("[Error] Failed to locate generated mock file.")
             sys.exit(1)
     else:
-        print("\n=== Running Pipeline with KAGGLE DATA ===")
-        print("Note: Ensure your Kaggle API key is set in your environment variables.")
+        logger.info("\n=== Running Pipeline with KAGGLE DATA ===")
+        logger.info("Note: Ensure your Kaggle API key is set in your environment variables.")
         dataset_slug = "dmi3kno/newcarsalesnorway"
         csv_path = download_kaggle_dataset(dataset_slug, "data")
         
         if not csv_path or not os.path.exists(csv_path):
-            print("[Error] Failed to retrieve dataset from Kaggle.")
-            print("Try running with --mock to test the pipeline without Kaggle.")
+            logger.error("[Error] Failed to retrieve dataset from Kaggle.")
+            logger.info("Try running with --mock to test the pipeline without Kaggle.")
             sys.exit(1)
             
-    print("\n=== Executing Quality Gate and Bronze Segregation ===")
+    logger.info("\n=== Executing Quality Gate and Bronze Segregation ===")
     extract_and_validate(csv_path)
 
 if __name__ == "__main__":

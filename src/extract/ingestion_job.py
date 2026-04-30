@@ -1,3 +1,7 @@
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
 import pandas as pd
 import sys
 import os
@@ -13,11 +17,11 @@ def extract_and_validate(csv_path: str):
     Reads the Norway Car Sales dataset, validates against the Pydantic contract (Bronze Gate),
     and separates records into Bronze (Pass) and Quarantine (Fail) layers.
     """
-    print(f"[Ingestion] Reading dataset: {csv_path}")
+    logger.info(f"[Ingestion] Reading dataset: {csv_path}")
     try:
         df = pd.read_csv(csv_path)
     except Exception as e:
-        print(f"[Error] Failed to read CSV: {e}")
+        logger.error(f"[Error] Failed to read CSV: {e}")
         return
 
     valid_analytical = []
@@ -48,22 +52,22 @@ def extract_and_validate(csv_path: str):
     
     if bronze_bucket:
         import awswrangler as wr
-        print(f"[Cloud] Writing to S3 Buckets: {bronze_bucket} and {quarantine_bucket}")
+        logger.info(f"[Cloud] Writing to S3 Buckets: {bronze_bucket} and {quarantine_bucket}")
         
         if valid_analytical:
             df_valid = pd.DataFrame(valid_analytical)
             s3_bronze_path = f"s3://{bronze_bucket}/ingestion_date={timestamp[:8]}/valid_sales_{timestamp}.parquet"
             wr.s3.to_parquet(df=df_valid, path=s3_bronze_path, index=False)
-            print(f"[Success] Saved {len(valid_analytical)} valid records to S3 Bronze: {s3_bronze_path}")
+            logger.info(f"[Success] Saved {len(valid_analytical)} valid records to S3 Bronze: {s3_bronze_path}")
             
         if quarantine_records:
             df_quar = pd.DataFrame(quarantine_records).astype(str)
             s3_quar_path = f"s3://{quarantine_bucket}/ingestion_date={timestamp[:8]}/malformed_sales_{timestamp}.parquet"
             wr.s3.to_parquet(df=df_quar, path=s3_quar_path, index=False)
-            print(f"[Dead Letter] Saved {len(quarantine_records)} invalid records to S3 Quarantine: {s3_quar_path}")
+            logger.info(f"[Dead Letter] Saved {len(quarantine_records)} invalid records to S3 Quarantine: {s3_quar_path}")
             
     else:
-        print("[Local] BRONZE_BUCKET env var not found. Writing locally.")
+        logger.info("[Local] BRONZE_BUCKET env var not found. Writing locally.")
         base_dir = Path("data")
         
         if valid_analytical:
@@ -73,7 +77,7 @@ def extract_and_validate(csv_path: str):
             df_valid = pd.DataFrame(valid_analytical)
             bronze_path = bronze_dir / f"valid_sales_{timestamp}.parquet"
             df_valid.to_parquet(bronze_path, index=False)
-            print(f"[Success] Saved {len(valid_analytical)} valid records to Local Bronze: {bronze_path}")
+            logger.info(f"[Success] Saved {len(valid_analytical)} valid records to Local Bronze: {bronze_path}")
             
         if quarantine_records:
             quar_dir = base_dir / "quarantine" / f"ingestion_date={timestamp[:8]}"
@@ -82,11 +86,11 @@ def extract_and_validate(csv_path: str):
             df_quar = pd.DataFrame(quarantine_records).astype(str)
             quar_path = quar_dir / f"malformed_sales_{timestamp}.parquet"
             df_quar.to_parquet(quar_path, index=False)
-            print(f"[Dead Letter] Saved {len(quarantine_records)} invalid records to Local Quarantine: {quar_path}")
+            logger.info(f"[Dead Letter] Saved {len(quarantine_records)} invalid records to Local Quarantine: {quar_path}")
         
-    print(f"\n[Summary] Processed {len(df)} rows.")
-    print(f" - Valid (Bronze): {len(valid_analytical)}")
-    print(f" - Malformed (Quarantine): {len(quarantine_records)}")
+    logger.info(f"\n[Summary] Processed {len(df)} rows.")
+    logger.info(f" - Valid (Bronze): {len(valid_analytical)}")
+    logger.info(f" - Malformed (Quarantine): {len(quarantine_records)}")
     
     return {
         "processed": len(df),
