@@ -183,7 +183,7 @@ def main() -> None:
 
     for i, stmt in enumerate(statements, 1):
         name = extract_statement_name(stmt)
-        logger.info(f"\n[{i}/{len(statements)}]", end="")
+        logger.info(f"\n[{i}/{len(statements)}]")
 
         success = execute_query(client, stmt, name)
         results.append((name, success))

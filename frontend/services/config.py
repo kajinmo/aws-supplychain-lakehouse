@@ -4,7 +4,7 @@ Stores API endpoints, AWS resource names, and UI constants.
 """
 
 # API Gateway Endpoint (from Epic 6)
-API_BASE_URL = "https://oforctm94m.execute-api.us-east-1.amazonaws.com"
+API_BASE_URL = "https://zv1r8af2kk.execute-api.us-east-1.amazonaws.com"
 
 # AWS Geography & Names
 AWS_REGION = "us-east-1"

@@ -2,23 +2,36 @@ import streamlit as st
 import plotly.express as px
 from services.aws_metadata import AWSMetadata
 from services.athena_client import AthenaClient
+from components.style import inject_custom_css
+from components.cards import render_metric_card
 
 # Page Config
 st.set_page_config(page_title="Pipeline Health", layout="wide")
 
+@st.cache_data(ttl=600)
+def fetch_sfn_status():
+    return AWSMetadata().get_pipeline_status()
+
+@st.cache_data(ttl=600)
+def fetch_glue_metrics():
+    return AWSMetadata().get_glue_job_metrics()
+
+@st.cache_data(ttl=3600)
+def fetch_quality_metrics():
+    return AthenaClient().get_quality_metrics()
+
 def display_health():
+    inject_custom_css()
+    
     st.title("Pipeline Health & Observability")
     st.markdown("Monitor the integrity of the data lakehouse and the results of the Pydantic Quality Gate.")
-
-    aws = AWSMetadata()
-    athena = AthenaClient()
 
     # --- ROW 1: Infrastructure Stats ---
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.subheader("Step Functions Orchestrator")
-        sfn_history = aws.get_pipeline_status()
+        sfn_history = fetch_sfn_status()
         if sfn_history:
             latest = sfn_history[0]
             status_color = "green" if latest["status"] == "SUCCEEDED" else "red"
@@ -29,7 +42,7 @@ def display_health():
 
     with col2:
         st.subheader("AWS Glue Transformation")
-        glue_metrics = aws.get_glue_job_metrics()
+        glue_metrics = fetch_glue_metrics()
         if glue_metrics:
             st.metric("Last Run Duration", f"{glue_metrics['duration']}s", delta_color="normal")
             st.markdown(f"**Status**: `{glue_metrics['status']}`")
@@ -51,13 +64,14 @@ def display_health():
         provide the metrics below.
     """)
     
-    quality_df = athena.get_quality_metrics()
+    quality_df = fetch_quality_metrics()
     
     if not quality_df.empty:
         m1, m2, m3 = st.columns([1, 1, 3])
         
         total_rejects = quality_df["rejected_count"].sum()
-        m1.metric("Total Rejects", total_rejects, delta="-15% (vs avg)" if total_rejects > 0 else "0", delta_color="inverse")
+        with m1:
+            render_metric_card("Total Rejects", f"{int(total_rejects):,}")
         
         with m3:
             # Build chart for error types

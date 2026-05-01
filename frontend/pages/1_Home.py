@@ -1,32 +1,54 @@
 import streamlit as st
+import pandas as pd
 import plotly.express as px
 from services.api_client import APIClient
 from services.athena_client import AthenaClient
+from components.style import inject_custom_css
 
 # Page Config
 st.set_page_config(page_title="Market Overview", layout="wide")
 
+@st.cache_data(ttl=3600)
+def fetch_operational_data():
+    """Fetches and caches top brands data from DynamoDB via API Gateway."""
+    api = APIClient()
+    all_brands = api.get_all_manufacturers()
+    top_brands_sample = ["Tesla", "Volkswagen", "Toyota", "BMW", "Volvo", "Audi", "Hyundai", "Nissan"]
+    combined_data = []
+    for brand in top_brands_sample:
+        df = api.get_sales_by_brand(brand, year=None)
+        if not df.empty:
+            combined_data.append(df)
+    return combined_data
+
+@st.cache_data(ttl=3600)
+def fetch_historical_trend(brands_str: str):
+    """Fetches and caches historical trend data from Athena."""
+    athena = AthenaClient()
+    query = f"""
+        SELECT 
+            CAST(year AS VARCHAR) || '-' || LPAD(CAST(month AS VARCHAR), 2, '0') as year_month, 
+            make as manufacturer, 
+            quantity
+        FROM lakehouse_db.norway_car_sales_silver
+        WHERE make IN ({brands_str})
+        ORDER BY year_month ASC
+        LIMIT 300
+    """
+    return athena.run_gold_query(query)
+
 def display_home():
+    inject_custom_css()
+    
     st.title("Market Overview")
     st.markdown("""
         Dual-serving interface combining **Real-time Operational Data** (DynamoDB) 
         and **Historical Analytical Trends** (Apache Iceberg & Athena).
     """)
 
-    api = APIClient()
-    athena = AthenaClient()
-    
     # --- DATA FETCHING ---
     with st.spinner("Fetching operational data..."):
-        all_brands = api.get_all_manufacturers()
-        # Fetching a cross-section of top brands for the overview
-        # In a real app, we might have a dedicated /top-brands endpoint
-        top_brands_sample = ["Tesla", "Volkswagen", "Toyota", "BMW", "Volvo", "Audi", "Hyundai", "Nissan"]
-        combined_data = []
-        for brand in top_brands_sample:
-            df = api.get_sales_by_brand(brand, year=None)
-            if not df.empty:
-                combined_data.append(df)
+        combined_data = fetch_operational_data()
     
     if combined_data:
         full_df = pd.concat(combined_data)
@@ -64,26 +86,11 @@ def display_home():
             st.subheader("Monthly Volume Trend (Historical)")
             
             with st.spinner("Querying Athena for historical trend..."):
-                # Fetching the first 36 months of the dataset (2007+) as requested
-                # for the specified top brands.
-                brands_str = "', '".join(top_brands_sample)
-                query = f"""
-                    SELECT 
-                        CAST(year AS VARCHAR) || '-' || LPAD(CAST(month AS VARCHAR), 2, '0') as year_month, 
-                        make as manufacturer, 
-                        quantity
-                    FROM lakehouse_db.norway_car_sales_silver
-                    WHERE make IN ('{brands_str}')
-                    ORDER BY year_month ASC
-                    LIMIT 300
-                """
-                # Using 300 to cover ~36 months for 8 brands
-                trend_df = athena.run_gold_query(query)
+                top_brands_sample = ["Tesla", "Volkswagen", "Toyota", "BMW", "Volvo", "Audi", "Hyundai", "Nissan"]
+                brands_str = ", ".join([f"'{b}'" for b in top_brands_sample])
+                trend_df = fetch_historical_trend(brands_str)
             
             if not trend_df.empty:
-                # Ensure correct casing for Plotly (Athena uses different aliases sometimes, 
-                # but our Silver table has quantity/manufacturer. 
-                # Let's ensure consistency here.)
                 unique_months = sorted(trend_df["year_month"].unique())[-36:]
                 trend_df = trend_df[trend_df["year_month"].isin(unique_months)]
                 trend_df = trend_df.sort_values("year_month")
@@ -91,7 +98,7 @@ def display_home():
                 fig_line = px.line(
                     trend_df,
                     x="year_month",
-                    y="quantity", # Athena returns lowercase from the view/table
+                    y="quantity", 
                     color="manufacturer",
                     template="plotly_dark",
                     line_shape="spline"
@@ -112,5 +119,4 @@ def display_home():
         st.info("Ensure the pipeline has populated the DynamoDB table.")
 
 if __name__ == "__main__":
-    import pandas as pd # Needed for the concat
     display_home()

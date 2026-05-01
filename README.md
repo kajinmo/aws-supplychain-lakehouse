@@ -89,9 +89,20 @@ graph TD
 ### Initial Deployment & Bootstrap
 
 1. **Provision Infrastructure**:
+   Before initializing, ensure you manually create the S3 bucket intended for the Terraform remote state (as defined in `infra/terraform/backend_infra.tf`) and set up your Budget Alert email.
+
    ```bash
+   # 1. Create the remote state bucket
+   aws s3 mb s3://<your-tfstate-bucket-name> --region us-east-1
+
+   # 2. Set the mandatory budget alert variable
+   export TF_VAR_budget_alert_email="your_email@example.com"
+   # Note: Use $env:TF_VAR_budget_alert_email="email@example.com" on PowerShell
+
+   # 3. Provision resources
    cd infra/terraform
    terraform init
+   terraform import aws_s3_bucket.terraform_state <your-tfstate-bucket-name>
    terraform apply
    ```
 
@@ -101,13 +112,32 @@ graph TD
    uv run python scripts/historical_bootstrap.py
    ```
 
-3. **Process the Batch**:
-   Go to the AWS Console, find the Step Functions state machine `car-sales-lakehouse-batch-orchestrator`, and start a manual execution to process the bootstrap batch.
+3. **Inject Mock Data (Incremental Testing)**:
+   To simulate continuous daily ingestion, you can manually inject small batches of mock data. Add `--chaos` to intentionally generate bad records for testing the Quarantine bucket observability.
+   ```bash
+   uv run python src/extract/run_pipeline.py --mock --chaos
+   ```
 
-4. **Launch Dashboard**:
+4. **Process the Batch**:
+   Go to the AWS Console, find the Step Functions state machine `car-sales-lakehouse-batch-orchestrator`, and start a manual execution to process the data in your Bronze bucket. Wait for it to complete.
+
+5. **Deploy Analytical Views (Gold Layer)**:
+   Once the batch is processed, run this script to create the logical views for the Athena Analytics dashboard.
+   ```bash
+   uv run python scripts/deploy_gold_views.py
+   ```
+
+6. **Launch Dashboard**:
    ```bash
    uv run streamlit run frontend/app.py
    ```
+
+## Architecture Decisions: Scheduled Batch vs. Event-Driven
+
+Although it is possible to configure **S3 Event Notifications** to trigger the Step Functions orchestrator the exact moment a new file hits the Bronze bucket, this project intentionally uses a **Scheduled Batch approach**. 
+
+* **The "Small Files Problem" & Cost Control**: If upstream systems send data in small, frequent intervals (e.g., thousands of 10kb files), triggering an Event-Driven AWS Glue job (Apache Spark) for each micro-file would cause massive DPU overhead and skyrocket the AWS bill.
+* **The Batch Solution**: By accumulating raw files in the Bronze layer and running a scheduled batch orchestrator daily/hourly, we achieve massive cost savings (staying well within the AWS Free Tier) while maximizing the distributed processing efficiency of Spark.
 
 ## Data Source
 Historical car sales data in Norway (2007-2017) sourced from Kaggle: [Norway New Car Sales](https://www.kaggle.com/datasets/lennat/norway-new-car-sales).

@@ -1,25 +1,43 @@
 import streamlit as st
 import plotly.express as px
 from services.athena_client import AthenaClient
+from components.style import inject_custom_css
 
 # Page Config
 st.set_page_config(page_title="Deep Analytics", layout="wide")
 
+@st.cache_data(ttl=3600)
+def fetch_market_leaders(year):
+    return AthenaClient().run_gold_query(f"SELECT * FROM gold_market_leaders WHERE year = {year} LIMIT 10")
+
+@st.cache_data(ttl=3600)
+def fetch_concentration():
+    return AthenaClient().run_gold_query("SELECT * FROM gold_brand_concentration ORDER BY year ASC")
+
+@st.cache_data(ttl=3600)
+def fetch_growth(year):
+    return AthenaClient().get_yoy_growth(year)
+
+@st.cache_data(ttl=3600)
+def fetch_emerging_brands(year):
+    return AthenaClient().run_gold_query(f"SELECT * FROM gold_emerging_brands WHERE year = {year} ORDER BY total_units DESC LIMIT 8")
+
 def display_analytics():
+    inject_custom_css()
+    
     st.title("Strategic Analytics (Gold Layer)")
     st.markdown("Deep historical insights calculated via **Apache Iceberg & Amazon Athena**.")
 
-    athena = AthenaClient()
-    
     # Year Selector
-    selected_year = st.sidebar.slider("Select Analysis Year", 2007, 2027, 2026)
+    min_y, max_y = AthenaClient().get_min_max_years()
+    selected_year = st.sidebar.slider("Select Analysis Year", min_y, max_y, max_y)
 
     # --- ROW 1: Market Leaders & Concentration ---
     col_left, col_right = st.columns(2)
     
     with col_left:
         st.subheader(f"Top 10 Market Leaders ({selected_year})")
-        leaders_df = athena.run_gold_query(f"SELECT * FROM gold_market_leaders WHERE year = {selected_year} LIMIT 10")
+        leaders_df = fetch_market_leaders(selected_year)
         if not leaders_df.empty:
             fig_leaders = px.bar(
                 leaders_df, 
@@ -38,7 +56,7 @@ def display_analytics():
 
     with col_right:
         st.subheader("Market Concentration (HHI Index)")
-        concentration_df = athena.run_gold_query("SELECT * FROM gold_brand_concentration ORDER BY year ASC")
+        concentration_df = fetch_concentration()
         if not concentration_df.empty:
             fig_hhi = px.area(
                 concentration_df,
@@ -61,7 +79,7 @@ def display_analytics():
     
     with cl:
         st.subheader("YoY Growth Winners")
-        growth_df = athena.get_yoy_growth(selected_year)
+        growth_df = fetch_growth(selected_year)
         if not growth_df.empty:
             # Filter top 10 growers
             top_growth = growth_df.nlargest(10, "yoy_growth_pct")
@@ -79,7 +97,7 @@ def display_analytics():
 
     with cr:
         st.subheader("Emerging Disruptors (Since 2015)")
-        emerging_df = athena.run_gold_query(f"SELECT * FROM gold_emerging_brands WHERE year = {selected_year} ORDER BY total_units DESC LIMIT 8")
+        emerging_df = fetch_emerging_brands(selected_year)
         if not emerging_df.empty:
             # Use a scatter/bubble plot for emerging brands
             fig_emerging = px.scatter(

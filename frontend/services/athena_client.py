@@ -38,7 +38,9 @@ class AthenaClient:
                 if status == "SUCCEEDED":
                     break
                 elif status in ["FAILED", "CANCELLED"]:
-                    raise Exception(f"Athena query failed with status: {status}")
+                    details = _self.client.get_query_execution(QueryExecutionId=query_execution_id)
+                    reason = details["QueryExecution"]["Status"].get("StateChangeReason", "Unknown")
+                    raise Exception(f"Status: {status}. Reason: {reason}")
                 
                 time.sleep(0.5)
 
@@ -61,7 +63,7 @@ class AthenaClient:
             numeric_cols = ["total_units", "ranking", "yoy_growth_pct", "total_market_share", "hhi_index", "rejected_count"]
             for col in df.columns:
                 if any(x in col for x in numeric_cols):
-                    df[col] = pd.to_numeric(df[col], errors="ignore")
+                    df[col] = pd.to_numeric(df[col], errors="coerce")
                     
             return df
 
@@ -77,3 +79,9 @@ class AthenaClient:
 
     def get_quality_metrics(self):
         return self.run_gold_query("SELECT * FROM gold_quality_metrics ORDER BY ingestion_date DESC")
+
+    def get_min_max_years(self):
+        df = self.run_gold_query("SELECT MIN(year) as min_y, MAX(year) as max_y FROM lakehouse_db.norway_car_sales_silver")
+        if not df.empty and not pd.isna(df.iloc[0]['min_y']):
+            return int(df.iloc[0]['min_y']), int(df.iloc[0]['max_y'])
+        return 2007, 2026

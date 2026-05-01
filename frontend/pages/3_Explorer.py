@@ -1,20 +1,31 @@
 import streamlit as st
 import plotly.express as px
 from services.api_client import APIClient
+from services.athena_client import AthenaClient
+from components.style import inject_custom_css
+from components.cards import render_metric_card
 
 # Page Config
 st.set_page_config(page_title="Brand Explorer", layout="wide")
 
+@st.cache_data(ttl=3600)
+def fetch_all_brands():
+    return APIClient().get_all_manufacturers()
+
+@st.cache_data(ttl=3600)
+def fetch_brand_data(brand, year):
+    return APIClient().get_sales_by_brand(brand, year=year)
+
 def display_explorer():
+    inject_custom_css()
+    
     st.title("Brand Explorer")
     st.markdown("Search and analyze specific manufacturer performance in the Norway market.")
 
-    api = APIClient()
-    
     # --- Sidebar: Search Filters ---
     st.sidebar.header("Search Filters")
     with st.spinner("Loading brands..."):
-        all_brands = api.get_all_manufacturers()
+        all_brands = fetch_all_brands()
     
     if not all_brands:
         st.error("Could not fetch brands from the Operational API. Ensure the table is populated.")
@@ -28,24 +39,28 @@ def display_explorer():
     )
     
     # Year Filter
-    selected_year = st.sidebar.select_slider("Focus Year (Optional)", options=[None] + list(range(2007, 2028)))
+    min_y, max_y = AthenaClient().get_min_max_years()
+    selected_year = st.sidebar.select_slider("Focus Year (Optional)", options=[None] + list(range(min_y, max_y + 1)))
 
     # --- Data Fetching ---
     with st.spinner(f"Analyzing {selected_brand}..."):
-        df = api.get_sales_by_brand(selected_brand, year=selected_year)
+        df = fetch_brand_data(selected_brand, year=selected_year)
 
     if not df.empty:
         # --- ROW 1: Brand KPIs ---
         col1, col2, col3 = st.columns(3)
         
         total_units = df["Quantity"].sum()
-        col1.metric(f"Total Units ({selected_brand})", f"{int(total_units):,}")
+        with col1:
+            render_metric_card(f"Total Units ({selected_brand})", f"{int(total_units):,}")
         
         avg_share = df["Pct"].mean()
-        col2.metric("Avg. Market Share", f"{avg_share:.2f}%")
+        with col2:
+            render_metric_card("Avg. Market Share", f"{avg_share:.2f}%")
         
         peak_month = df.loc[df["Quantity"].idxmax(), "year_month"]
-        col3.metric("Best Month", peak_month)
+        with col3:
+            render_metric_card("Best Month", peak_month)
 
         st.divider()
 
